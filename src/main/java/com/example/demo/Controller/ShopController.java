@@ -1,5 +1,6 @@
 package com.example.demo.Controller;
 
+import com.example.demo.Entity.PageOptionEntity;
 import com.example.demo.Entity.ShopEntity;
 import com.example.demo.Mapper.ShopMapper;
 import com.example.demo.Service.ShopService;
@@ -10,6 +11,7 @@ import net.sf.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
@@ -20,11 +22,11 @@ public class ShopController {
     @Autowired
     ShopService shopService;
     @GetMapping("/getShops")
-    public String getShop () throws JsonProcessingException {
-        List<ShopEntity> res = shopService.find();
-        System.out.println(res);
+    public String getShop (PageOptionEntity pageOptionEntity) throws JsonProcessingException {
+        List<ShopEntity> res = shopService.find(pageOptionEntity);
+//        System.out.println(res);
         JSONArray jsonObject = JSONArray.fromObject(res);
 
-        return res.toString();
+        return jsonObject.toString();
     }
 }

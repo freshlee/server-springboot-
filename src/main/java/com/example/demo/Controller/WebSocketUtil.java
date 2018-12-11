@@ -1,20 +1,31 @@
 package com.example.demo.Controller;
 
-import org.springframework.stereotype.Component;
-
-import javax.websocket.*;
-import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-@ServerEndpoint(value = "/websocket")
+import javax.websocket.OnClose;
+import javax.websocket.OnError;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.Session;
+import javax.websocket.server.ServerEndpoint;
+
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.server.standard.ServerEndpointExporter;
+
+/**
+ * 双工通信websocket工具类
+ * @author wwl
+ *
+ */
+@ServerEndpoint(value="/webSocket")
 @Component
-public class SocketController {
+public class WebSocketUtil extends ServerEndpointExporter {
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int onlineCount = 0;
 
     //concurrent包的线程安全Set，用来存放每个客户端对应的MyWebSocket对象。
-    private static CopyOnWriteArraySet<SocketController> webSocketSet = new CopyOnWriteArraySet<SocketController>();
+    private static CopyOnWriteArraySet<WebSocketUtil> webSocketSet = new CopyOnWriteArraySet<WebSocketUtil>();
 
     //与某个客户端的连接会话，需要通过它来给客户端发送数据
     private Session session;
@@ -28,7 +39,7 @@ public class SocketController {
         addOnlineCount();           //在线数加1
         System.out.println("有新连接加入！当前在线人数为" + getOnlineCount());
         try {
-            sendMessage("有新连接加入");
+            sendMessage("您是第" + getOnlineCount() + "个双工通信的用户！");
         } catch (IOException e) {
             System.out.println("IO异常");
         }
@@ -51,38 +62,39 @@ public class SocketController {
     @OnMessage
     public void onMessage(String message, Session session) {
         System.out.println("来自客户端的消息:" + message);
-
-        //群发消息
-        for (SocketController item : webSocketSet) {
-            try {
-                item.sendMessage(message);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        //发送消息
+        try {
+            session.getBasicRemote().sendText(message);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     /**
      * 发生错误时调用
+     */
+    @OnError
+    public void onError(Session session, Throwable error) {
+        System.out.println("发生错误");
+        error.printStackTrace();
+    }
+
+    /**
+     * 发送消息
+     * @param message
+     * @throws IOException
+     */
+    public void sendMessage(String message) throws IOException {
+        this.session.getBasicRemote().sendText(message);
+        //this.session.getAsyncRemote().sendText(message);
+    }
+
+
+    /**
+     * 群发自定义消息
      * */
-     @OnError
-     public void onError(Session session, Throwable error) {
-     System.out.println("发生错误");
-     error.printStackTrace();
-     }
-
-
-     public void sendMessage(String message) throws IOException {
-     this.session.getBasicRemote().sendText(message);
-     //this.session.getAsyncRemote().sendText(message);
-     }
-
-
-     /**
-      * 群发自定义消息
-      * */
     public static void sendInfo(String message) throws IOException {
-        for (SocketController item : webSocketSet) {
+        for (WebSocketUtil item : webSocketSet) {
             try {
                 item.sendMessage(message);
             } catch (IOException e) {
@@ -96,10 +108,10 @@ public class SocketController {
     }
 
     public static synchronized void addOnlineCount() {
-        SocketController.onlineCount++;
+        WebSocketUtil.onlineCount++;
     }
 
     public static synchronized void subOnlineCount() {
-        SocketController.onlineCount--;
+        WebSocketUtil.onlineCount--;
     }
 }
